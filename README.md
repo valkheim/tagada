@@ -1,3 +1,3 @@
-# IDA Python plugin sample
+# Tagada
 
-This is a template for starting with IDA plugins development.
+* Use emun to discover and document memory pool tags

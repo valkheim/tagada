@@ -1,11 +1,12 @@
 import idaapi
+import idautils
+import idc
 
 from .idautils import find_import
-from .utils import log
+from .utils import info, warning
 
 
 def run():
-    log("Tagada!")
     hooks = {
         "ntoskrnl": [
             ("ExAllocatePool2", 3),
@@ -32,4 +33,19 @@ def run():
             if ea == idaapi.BADADDR:
                 continue
 
-            log(f"{module_name} — {hex(ea)} — {tag_arg_position} — {function_name}")
+            info(f"{module_name} — {hex(ea)} — {tag_arg_position} — {function_name}")
+            for xref in idautils.XrefsTo(ea):
+                call_from = xref.frm
+                info(f"  {hex(call_from)}")
+                tag_value_ea = idaapi.get_arg_addrs(call_from)[tag_arg_position - 1]
+                insn = idaapi.insn_t()
+                idaapi.decode_insn(insn, tag_value_ea)
+                if (
+                    insn.itype == idaapi.NN_mov and insn.ops[1].type == idc.o_imm
+                ):  # mov edx, 53646641h ; Tag
+                    tag_value = insn.ops[1].value
+                    tag_name = b"".fromhex(hex(tag_value)[2:])[::-1]  # unidecode
+                    info(f"{hex(tag_value_ea)} — {hex(tag_value)} — {tag_name}")
+
+                else:
+                    warning(f"cannot decode tag at {hex(tag_value_ea)}")

@@ -1,7 +1,8 @@
 import idaapi
 
-# idaapi.require("tagada", package="tagada")
 import tagada
+
+idaapi.require("tagada", package="tagada")
 
 
 def load() -> None:

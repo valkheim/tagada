@@ -1,5 +1,7 @@
 import functools
+
 import idaapi
+
 
 @functools.lru_cache(maxsize=None)
 def find_import(module_name: str, function_name: str) -> int:

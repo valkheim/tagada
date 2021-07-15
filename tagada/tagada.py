@@ -5,7 +5,7 @@ import idautils
 import idc
 
 from .idautils import add_enum_member, find_import, get_enum, get_function_ea_by_name
-from .utils import info, warning
+from .utils import error, info, warning
 
 ENUM_NAME = "MEMORY_TAGS"
 ENUM_MEMBER_PREFIX = "MEMORY_TAG"
@@ -27,21 +27,45 @@ def yield_function(file_name: str, function_name: str) -> Iterator[int]:
         yield from yield_function_from_imports(module_name, function_name)
 
 
-def apply_tag(enum, tag_value_ea: int) -> None:
+def get_imm_tag(insn) -> int:
+    """
+    Get tag value when there is a direct value available like
+    # mov edx, 53646641h ; Tag
+    """
+    return insn.ops[1].value
+
+
+def get_tag_value(tag_value_ea: int) -> int:
     insn = idaapi.insn_t()
     idaapi.decode_insn(insn, tag_value_ea)
-    if (
-        insn.itype == idaapi.NN_mov and insn.ops[1].type == idc.o_imm
-    ):  # mov edx, 53646641h ; Tag
-        tag_value = insn.ops[1].value
-        tag_suffix = b"".fromhex(hex(tag_value)[2:])[::-1].decode("utf-8")  # unidecode
-        tag_name = f"{ENUM_MEMBER_PREFIX}_{tag_suffix}"
-        info(f"Tag set @{hex(tag_value_ea)} — {hex(tag_value)} — {tag_name}")
-        add_enum_member(enum, tag_name, tag_value)
-        idaapi.op_enum(tag_value_ea, 1, enum, 0)
+    if insn.itype == idaapi.NN_mov and insn.ops[1].type == idc.o_imm:
+        return get_imm_tag(insn)
 
-    else:
-        warning(f"cannot decode tag at {hex(tag_value_ea)}")
+    return None
+
+
+def apply_tag(enum, tag_value_ea: int) -> None:
+    tag_value = get_tag_value(tag_value_ea)
+    if tag_value is None:
+        warning(f"Cannot decode tag at {tag_value_ea:#x}")
+        return
+
+    try:
+        # Tag with printable chars
+        tag_suffix = b"".fromhex(hex(tag_value)[2:])[::-1].decode("utf-8")  # unidecode
+
+    except ValueError:
+        # Fallback to a digits-based suffix
+        tag_suffix = "{0:0{1}X}".format(tag_value, 8)
+
+    except ValueError:
+        error(f"Cannot get tag name for tag set at {tag_value_ea:#x}")
+        return
+
+    tag_name = f"{ENUM_MEMBER_PREFIX}_{tag_suffix}"
+    info(f"Tag {tag_name} ({tag_value:#08x}) set at {tag_value_ea:#x}")
+    add_enum_member(enum, tag_name, tag_value)
+    idaapi.op_enum(tag_value_ea, 1, enum, 0)
 
 
 def run():
@@ -70,14 +94,25 @@ def run():
             ("ExSecurePoolValidate", 2),
         ],
         "afd.sys": [
+            ("PplGenericAllocateFunction", 3),  # Ppl
             ("PplCreateLookasideList", 6),
             ("PplCreateLookasideList", 8),
+            ("PplDestroyLookasideList", 2),
+            ("PplpCreateOneLookasideList", 6),  # Pplp
+            ("PplpCreateOneLookasideList", 8),
+            ("PplpFreeOneLookasideList", 2),
+            ("PnlCreateLookasideList", 6),  # Pnl
+            ("PnlCreateLookasideList", 8),
+            ("AfdAllocateBuffer", 3),  # Afd
+            ("AfdAllocateBufferTag", 3),
+            ("AfdAllocateRemoteAddress", 3),
+            ("AfdAllocateTpInfo", 3),
         ],
     }
+    # 🛷
     for module_name, function_names in hooks.items():
         for function_name, tag_arg_position in function_names:
             for ea in yield_function(module_name, function_name):
-                info(f"{module_name} — Tag used @{hex(ea)} in {function_name}")
                 for xref in idautils.XrefsTo(ea):
                     args = idaapi.get_arg_addrs(xref.frm)
                     if args is None:  # e.g. xref in a vtable

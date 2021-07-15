@@ -1,3 +1,5 @@
+import os
+
 import idaapi
 
 import tagada
@@ -5,8 +7,16 @@ import tagada
 idaapi.require("tagada", package="tagada")
 
 
-def load() -> None:
-    idaapi.require("tagada.tagada")
+def load(plugin_name: str) -> None:
+    package_name = plugin_name.casefold()
+    package_path = os.path.join(os.path.dirname(__file__), package_name)
+    for entry in os.listdir(package_path):
+        if not entry.endswith(".py"):
+            continue
+
+        module_name = entry[:-3]
+        module_python_path = f"{package_name}.{module_name}"
+        idaapi.require(module_python_path)
 
 
 class Plugin(idaapi.plugin_t):
@@ -28,8 +38,7 @@ class Plugin(idaapi.plugin_t):
         tagada.info("-" * 80)
 
     def init(self):
-        load()
-
+        load(Plugin.NAME)
         tagada.debug("Init")
         try:
             # some initialization routines

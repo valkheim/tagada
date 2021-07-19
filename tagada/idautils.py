@@ -7,7 +7,7 @@ import idc
 
 
 @functools.lru_cache(maxsize=None)
-def find_import(module_name: str, function_name: str) -> int:
+def get_function_ea_from_import(module_name: str, function_name: str) -> int:
     imports_qty = idaapi.get_import_module_qty()
     for idx in range(imports_qty):
         if module_name != idaapi.get_import_module_name(idx):
@@ -28,22 +28,6 @@ def find_import(module_name: str, function_name: str) -> int:
     return idaapi.BADADDR
 
 
-def get_enum(name: str):
-    enum = idaapi.get_enum(name)
-    if enum != idaapi.BADADDR:
-        return enum
-
-    return idaapi.add_enum(0, name, idaapi.hex_flag())
-
-
-def add_enum_member(enum, member_name: str, member_value: str):
-    value = idaapi.get_enum_member(enum, member_value, 0, 0)
-    if value != idaapi.BADADDR:
-        return
-
-    return idaapi.add_enum_member(enum, member_name, member_value)
-
-
 def get_function_ea_by_name(required_name: str) -> int:
     for ea in idautils.Functions():
         name = idaapi.get_func_name(ea)
@@ -53,20 +37,30 @@ def get_function_ea_by_name(required_name: str) -> int:
     return idaapi.BADADDR
 
 
-def yield_function_from_imports(module_name: str, function_name: str) -> Iterator[int]:
-    ea = find_import(module_name, function_name)
-    if ea != idaapi.BADADDR:
-        yield ea
-
-
-def yield_function(file_name: str, function_name: str) -> Iterator[int]:
+def get_function(file_name: str, function_name: str) -> Iterator[int]:
     opened_file = idaapi.get_root_filename()
     if opened_file == file_name:
-        yield get_function_ea_by_name(function_name)
+        return get_function_ea_by_name(function_name)
 
     else:
         module_name = file_name.split(".")[0]
-        yield from yield_function_from_imports(module_name, function_name)
+        return get_function_ea_from_import(module_name, function_name)
+
+
+def get_enum(name: str):
+    enum = idaapi.get_enum(name)
+    if enum != idaapi.BADADDR:
+        return enum
+
+    return idaapi.add_enum(0, name, idaapi.hex_flag())
+
+
+def add_enum_member(enum, member_name: str, member_value: str) -> bool:
+    value = idaapi.get_enum_member(enum, member_value, 0, 0)
+    if value != idaapi.BADADDR:
+        return True
+
+    return idaapi.add_enum_member(enum, member_name, member_value) == 0
 
 
 def get_imm_value(insn) -> int:

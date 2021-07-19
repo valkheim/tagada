@@ -1,3 +1,6 @@
 # Tagada
 
-* Use emun to discover and document memory pool tags
+Enumerations
+
+* memory pool tags
+* IOCTLs

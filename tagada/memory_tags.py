@@ -1,14 +1,14 @@
 import idaapi
 import idautils
 
-from .idautils import add_enum_member, get_enum, get_value, yield_function
-from .utils import error, info, warning
+from .idautils import add_enum_member, get_enum, get_function, get_value
+from .utils import error, info
 
 
 def apply_tag(enum, tag_value_ea: int) -> None:
     tag_value = get_value(tag_value_ea)
     if tag_value is None:
-        warning(f"Cannot decode tag at {tag_value_ea:#x}")
+        error(f"Cannot decode tag at {tag_value_ea:#x}")
         return
 
     try:
@@ -25,7 +25,10 @@ def apply_tag(enum, tag_value_ea: int) -> None:
 
     tag_name = f"MEMORY_TAG_{tag_suffix}"
     info(f"Tag {tag_name} ({tag_value:#08x}) set at {tag_value_ea:#x}")
-    add_enum_member(enum, tag_name, tag_value)
+    if add_enum_member(enum, tag_name, tag_value) is False:
+        error(f"Cannot add tag to tags enum (name: {tag_name}, value: {tag_value:#x}")
+        return
+
     idaapi.op_enum(tag_value_ea, 1, enum, 0)
 
 
@@ -73,11 +76,11 @@ def run():
     # 🛷
     for module_name, function_names in hooks.items():
         for function_name, tag_arg_position in function_names:
-            for ea in yield_function(module_name, function_name):
-                for xref in idautils.XrefsTo(ea):
-                    args = idaapi.get_arg_addrs(xref.frm)
-                    if args is None:  # e.g. xref in a vtable
-                        continue
+            ea = get_function(module_name, function_name)
+            for xref in idautils.XrefsTo(ea):
+                args = idaapi.get_arg_addrs(xref.frm)
+                if args is None:  # e.g. xref in a vtable
+                    continue
 
-                    tag_value_ea = args[tag_arg_position - 1]
-                    apply_tag(enum, tag_value_ea)
+                tag_value_ea = args[tag_arg_position - 1]
+                apply_tag(enum, tag_value_ea)

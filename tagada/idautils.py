@@ -1,7 +1,9 @@
 import functools
+from typing import Iterator
 
 import idaapi
 import idautils
+import idc
 
 
 @functools.lru_cache(maxsize=None)
@@ -49,3 +51,33 @@ def get_function_ea_by_name(required_name: str) -> int:
             return ea
 
     return idaapi.BADADDR
+
+
+def yield_function_from_imports(module_name: str, function_name: str) -> Iterator[int]:
+    ea = find_import(module_name, function_name)
+    if ea != idaapi.BADADDR:
+        yield ea
+
+
+def yield_function(file_name: str, function_name: str) -> Iterator[int]:
+    opened_file = idaapi.get_root_filename()
+    if opened_file == file_name:
+        yield get_function_ea_by_name(function_name)
+
+    else:
+        module_name = file_name.split(".")[0]
+        yield from yield_function_from_imports(module_name, function_name)
+
+
+def get_imm_value(insn) -> int:
+    """Get value when its immediate like `mov edx, 53646641h`"""
+    return insn.ops[1].value
+
+
+def get_value(tag_value_ea: int) -> int:
+    insn = idaapi.insn_t()
+    idaapi.decode_insn(insn, tag_value_ea)
+    if insn.itype == idaapi.NN_mov and insn.ops[1].type == idc.o_imm:
+        return get_imm_value(insn)
+
+    return None

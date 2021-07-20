@@ -35,16 +35,23 @@ def run():
             ("ZwDeviceIoControlFile", 6),
             ("IopXxxControlFile", 6),
         ],
-        "api-ms-win-core-io-l1-1-0": [
+        "api-ms-win-core-io-l1-1-0.dll": [  # ApiSet Stub DLL
             ("DeviceIoControl", 2),
         ],
-        "ntdll.dll": [
+        "ntdll.dll": [  #  NT Layer DLL
             ("NtDeviceIoControlFile", 6),
             ("ZwDeviceIoControlFile", 6),
         ],
-        "kernel32.dll": [
+        "kernel32.dll": [  # Windows NT BASE API Client DLL
             ("DeviceIoControlImplementation", 2),
             ("BasepDoTapeOperation", 2),
+        ],
+        "Ws2_32.dll": [  # Windows Socket 2.0 32-bit DLL
+            ("WSAIoctl", 2),
+            ("WSANSPIoctl", 2),
+            ("NSQUERY::Ioctl", 2),
+            ("TransferSocketIoctl", 2),
+            ("ioctlsocket", 2),
         ],
     }
     # 🛷

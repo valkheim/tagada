@@ -56,6 +56,8 @@ def run():
             ("ExInitializePagedLookasideList", 6),
             ("ExSecurePoolUpdate", 2),
             ("ExSecurePoolValidate", 2),
+            ("VeAllocatePoolWithTagPriority", 3),
+            ("ObfReferenceObjectWithTag", 2),
         ],
         "afd.sys": [
             ("PplGenericAllocateFunction", 3),  # Ppl

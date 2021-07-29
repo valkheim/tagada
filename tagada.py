@@ -52,6 +52,7 @@ class Plugin(idaapi.plugin_t):
         return idaapi.PLUGIN_KEEP
 
     def run(self, arg):
+        tagada.debug("run")
         tagada.run()
         pass
 

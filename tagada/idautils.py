@@ -1,9 +1,11 @@
 import functools
-from typing import Iterator
+from typing import Dict, Iterator
 
 import idaapi
 import idautils
 import idc
+
+from .types import Enum
 
 
 @functools.lru_cache(maxsize=None)
@@ -47,7 +49,7 @@ def get_function(file_name: str, function_name: str) -> Iterator[int]:
         return get_function_ea_from_import(module_name, function_name)
 
 
-def get_enum(name: str):
+def get_enum(name: str) -> Enum:
     enum = idaapi.get_enum(name)
     if enum != idaapi.BADADDR:
         return enum
@@ -55,7 +57,15 @@ def get_enum(name: str):
     return idaapi.add_enum(0, name, idaapi.hex_flag())
 
 
-def add_enum_member(enum, member_name: str, member_value: str) -> bool:
+def new_enum(name: str, values: Dict[int, str]) -> Enum:
+    enum = get_enum(name)
+    for value, label in values.items():
+        add_enum_member(enum, label, value)
+
+    return enum
+
+
+def add_enum_member(enum: Enum, member_name: str, member_value: str) -> bool:
     value = idaapi.get_enum_member(enum, member_value, 0, 0)
     if value != idaapi.BADADDR:
         return True

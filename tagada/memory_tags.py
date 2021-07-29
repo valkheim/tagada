@@ -58,6 +58,8 @@ def run():
             ("ExSecurePoolValidate", 2),
             ("VeAllocatePoolWithTagPriority", 3),
             ("ObfReferenceObjectWithTag", 2),
+            ("ObfDereferenceObjectWithTag", 2),
+            ("ObReferenceObjectByHandleWithTag", 5),
         ],
         "afd.sys": [
             ("PplGenericAllocateFunction", 3),  # Ppl

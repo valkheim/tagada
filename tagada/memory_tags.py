@@ -60,6 +60,16 @@ def run():
             ("ObfReferenceObjectWithTag", 2),
             ("ObfDereferenceObjectWithTag", 2),
             ("ObReferenceObjectByHandleWithTag", 5),
+            #ExAllocatePool
+            #ExAllocatePool2
+            #ExAllocatePool3
+            #ExAllocatePoolMm
+            #ExAllocatePoolSanityChecks
+            #ExAllocatePoolWithQuota
+            #ExAllocatePoolWithQuotaTag
+            #ExAllocatePoolWithTag
+            #ExAllocatePoolWithTagFromNode
+            #ExAllocatePoolWithTagPriority
         ],
         "afd.sys": [
             ("PplGenericAllocateFunction", 3),  # Ppl

@@ -36,40 +36,44 @@ def run():
     enum = get_enum("MEMORY_TAGS")
     hooks = {
         "ntoskrnl.exe": [
+            ("ExAllocateHeapPool", 3),
+            ("ExCreatePool", 2),
+            ("VfCheckPoolType", 3),
             ("ExAllocatePool2", 3),
+            ("pXdvExAllocatePool2", 3),
+            ("VerifierExAllocatePool2", 3),
+            ("ExFreePool2", 2),
             ("ExAllocatePool3", 3),
+            ("pXdvExAllocatePool3", 3),
+            ("VerifierExAllocatePool3", 3),
+            ("ExAllocatePoolMm", 3),
+            ("ExAllocatePoolUninitialized", 3),
             ("ExAllocatePoolPriorityUninitialized", 3),
+            ("ExAllocatePoolZero", 3),
             ("ExAllocatePoolPriorityZero", 3),
             ("ExAllocatePoolQuotaUninitialized", 3),
             ("ExAllocatePoolQuotaZero", 3),
-            ("ExAllocatePoolUninitialized", 3),
-            ("ExAllocatePoolWithQuotaTag", 3),
             ("ExAllocatePoolWithTag", 3),
             ("ExAllocatePoolWithTagPriority", 3),
-            ("ExAllocatePoolZero", 3),
-            ("ExCreatePool", 2),
-            ("ExFreePool2", 2),
+            ("pXdvExAllocatePoolWithTagPriority", 3),
+            ("VeAllocatePoolWithTagPriority", 3),
+            ("VerifierExAllocatePoolWithTagPriority", 3),
+            ("VerifierPortExAllocatePoolWithTagPriority", 3),
             ("ExFreePoolWithTag", 2),
+            ("ExAllocatePoolWithQuotaTag", 3),
+            ("VerifierExAllocatePoolWithQuotaTag", 3),
+            ("ExpAllocatePoolWithTagFromNode", 3),
             ("ObDereferenceObjectDeferDeleteWithTag", 2),
             ("ExInitializeLookasideListEx", 7),
             ("ExInitializeNPagedLookaside", 6),
             ("ExInitializePagedLookasideList", 6),
             ("ExSecurePoolUpdate", 2),
             ("ExSecurePoolValidate", 2),
-            ("VeAllocatePoolWithTagPriority", 3),
             ("ObfReferenceObjectWithTag", 2),
             ("ObfDereferenceObjectWithTag", 2),
             ("ObReferenceObjectByHandleWithTag", 5),
-            #ExAllocatePool
-            #ExAllocatePool2
-            #ExAllocatePool3
-            #ExAllocatePoolMm
-            #ExAllocatePoolSanityChecks
-            #ExAllocatePoolWithQuota
-            #ExAllocatePoolWithQuotaTag
-            #ExAllocatePoolWithTag
-            #ExAllocatePoolWithTagFromNode
-            #ExAllocatePoolWithTagPriority
+            ("CmpAllocateTransientPoolWithTag", 3),
+            ("ExAllocatePoolSanityChecks", 3),  # _Out_
         ],
         "afd.sys": [
             ("PplGenericAllocateFunction", 3),  # Ppl

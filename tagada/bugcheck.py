@@ -1,8 +1,8 @@
 import idaapi
-import idautils
 
-from .idautils import get_function, get_value, new_enum
-from .utils import error
+from .idautils import get_value, new_enum
+from .types import Enum
+from .utils import error, find_enum_values, info
 
 BUG_CHECK_CODES = {
     0x00000001: "APC_INDEX_MISMATCH",
@@ -375,14 +375,14 @@ BUG_CHECK_CODES = {
 }
 
 
-def apply_tag(enum, tag_value_ea: int) -> None:
-    tag_value = get_value(tag_value_ea)
-    if tag_value is None:
-        error(f"Cannot decode tag at {tag_value_ea:#x}")
+def apply_label(enum: Enum, value_ea: int) -> None:
+    value = get_value(value_ea)
+    if value is None:
+        error(f"Cannot decode bugcheck label at {value_ea:#x}")
         return
 
-    print("apply tag ", hex(tag_value_ea), hex(tag_value))
-    idaapi.op_enum(tag_value_ea, 1, enum, 0)
+    info(f"BugCheck ({value:#x}) set at {value_ea:#x}")
+    idaapi.op_enum(value_ea, 1, enum, 0)
 
 
 def run() -> None:
@@ -398,13 +398,4 @@ def run() -> None:
             ("VfFailDriver", 1),
         ]
     }
-    for module_name, function_names in hooks.items():
-        for function_name, tag_arg_position in function_names:
-            ea = get_function(module_name, function_name)
-            for xref in idautils.XrefsTo(ea):
-                args = idaapi.get_arg_addrs(xref.frm)
-                if args is None:  # e.g. xref in a vtable
-                    continue
-
-                tag_value_ea = args[tag_arg_position - 1]
-                apply_tag(enum, tag_value_ea)
+    find_enum_values(enum, hooks, apply_label)

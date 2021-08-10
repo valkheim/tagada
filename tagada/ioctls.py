@@ -7,10 +7,10 @@ import dataclasses
 from typing import Dict
 
 import idaapi
-import idautils
 
-from .idautils import add_enum_member, get_enum, get_function, get_value
-from .utils import error, info
+from .idautils import add_enum_member, get_enum, get_value
+from .types import Enum
+from .utils import error, find_enum_values, info
 
 DEVICE_TYPES = {
     0x00000001: "DEVICE_BEEP",
@@ -169,7 +169,7 @@ class IOCTL:
         )
 
 
-def apply_ioctl(enum, value_ea: int) -> None:
+def apply_ioctl(enum: Enum, value_ea: int) -> None:
     value = get_value(value_ea)
     if value is None:
         error(f"Cannot decode IOCTL at {value_ea:#x}")
@@ -213,14 +213,4 @@ def run():
             ("ioctlsocket", 2),
         ],
     }
-    # 🛷
-    for module_name, function_names in hooks.items():
-        for function_name, tag_arg_position in function_names:
-            ea = get_function(module_name, function_name)
-            for xref in idautils.XrefsTo(ea):
-                args = idaapi.get_arg_addrs(xref.frm)
-                if args is None:  # e.g. xref in a vtable
-                    continue
-
-                tag_value_ea = args[tag_arg_position - 1]
-                apply_ioctl(enum, tag_value_ea)
+    find_enum_values(enum, hooks, apply_ioctl)

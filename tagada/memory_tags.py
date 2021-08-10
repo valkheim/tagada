@@ -1,14 +1,14 @@
 import idaapi
-import idautils
 
-from .idautils import add_enum_member, get_enum, get_function, get_value
-from .utils import error, info
+from .idautils import add_enum_member, get_enum, get_value
+from .types import Enum
+from .utils import error, find_enum_values, info
 
 
-def apply_tag(enum, tag_value_ea: int) -> None:
+def apply_tag(enum: Enum, tag_value_ea: int) -> None:
     tag_value = get_value(tag_value_ea)
     if tag_value is None:
-        error(f"Cannot decode tag at {tag_value_ea:#x}")
+        error(f"Cannot decode memory tag at {tag_value_ea:#x}")
         return
 
     try:
@@ -16,15 +16,15 @@ def apply_tag(enum, tag_value_ea: int) -> None:
         tag_suffix = b"".fromhex(hex(tag_value)[2:])[::-1].decode("utf-8")  # unidecode
 
     except ValueError:
-        # Fallback to a digits-based suffix
+        # Fallback to a digit-based suffix
         tag_suffix = "{0:0{1}X}".format(tag_value, 8)
 
     except ValueError:
-        error(f"Cannot get tag name for tag set at {tag_value_ea:#x}")
+        error(f"Cannot craft memory tag name for tag set at {tag_value_ea:#x}")
         return
 
     tag_name = f"MEMORY_TAG_{tag_suffix}"
-    info(f"Tag {tag_name} ({tag_value:#08x}) set at {tag_value_ea:#x}")
+    info(f"Memory tag {tag_name} ({tag_value:#08x}) set at {tag_value_ea:#x}")
     if add_enum_member(enum, tag_name, tag_value) is False:
         error(f"Cannot add tag to tags enum (name: {tag_name}, value: {tag_value:#x}")
         return
@@ -91,14 +91,4 @@ def run():
             ("AfdAllocateTpInfo", 3),
         ],
     }
-    # 🛷
-    for module_name, function_names in hooks.items():
-        for function_name, tag_arg_position in function_names:
-            ea = get_function(module_name, function_name)
-            for xref in idautils.XrefsTo(ea):
-                args = idaapi.get_arg_addrs(xref.frm)
-                if args is None:  # e.g. xref in a vtable
-                    continue
-
-                tag_value_ea = args[tag_arg_position - 1]
-                apply_tag(enum, tag_value_ea)
+    find_enum_values(enum, hooks, apply_tag)

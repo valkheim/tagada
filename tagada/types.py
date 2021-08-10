@@ -1,3 +1,8 @@
-from typing import Any
+from typing import Any, Dict
 
-Enum = Any
+IDAAny = Any
+
+Enum = IDAAny
+Insn = IDAAny
+
+Hooks = Dict[int, str]

@@ -5,7 +5,7 @@ import idaapi
 import idautils
 import idc
 
-from .types import Enum
+from .types import Enum, Insn
 
 
 @functools.lru_cache(maxsize=None)
@@ -73,7 +73,7 @@ def add_enum_member(enum: Enum, member_name: str, member_value: str) -> bool:
     return idaapi.add_enum_member(enum, member_name, member_value) == 0
 
 
-def get_imm_value(insn) -> int:
+def get_imm_value(insn: Insn) -> int:
     """Get value when its immediate like `mov edx, 53646641h`"""
     return insn.ops[1].value
 

@@ -4,11 +4,20 @@ Search IOCTLs
 """
 
 import dataclasses
-from typing import Dict
+from typing import Dict, List
 
 import idaapi
+import idautils
 
-from .idautils import add_enum_member, get_enum, get_value
+from .idautils import (
+    add_enum_member,
+    apply_enum,
+    get_compared_value,
+    get_enum,
+    get_functions,
+    get_segments,
+    get_value,
+)
 from .types import Enum
 from .utils import error, find_enum_values, info
 
@@ -119,20 +128,24 @@ def ioctl_get_device_type(
     io_control_code: int, device_types: Dict[int, str] = DEVICE_TYPES
 ) -> str:
     index = (io_control_code & 0xFFFF0000) >> 16
-    return device_types.get(index, "DEVICE_UNKNOWN")
+    return device_types.get(index, f"DEVICE_UNKNOWN_{index:X}")
 
 
 def ioctl_get_function_code(io_control_code: int) -> int:
-    function_code = bin(io_control_code)[2:][-14:-2]
-    function_code = int(function_code, 2)
-    return function_code
+    try:
+        function_code = bin(io_control_code)[2:][-14:-2]
+        function_code = int(function_code, 2)
+        return function_code
+
+    except ValueError:
+        return -1
 
 
 def ioctl_get_access_check(
     io_control_code: int, access_checks: Dict[int, str] = ACCESS_CHECKS
 ) -> str:
     index = (io_control_code & 0x0000FFFF) >> 14
-    return access_checks.get(index, "ACCESS_CHECK_UNKNOWN")
+    return access_checks.get(index, f"ACCESS_CHECK_UNKNOWN_{index:X}")
 
 
 def ioctl_get_io_method(
@@ -140,7 +153,7 @@ def ioctl_get_io_method(
 ) -> str:
     index = bin(io_control_code)[2:][-2:]
     index = int(index, 2)
-    return io_methods.get(index, "METHOD_UNKNOWN")
+    return io_methods.get(index, f"METHOD_UNKNOWN_{index:X}")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -169,19 +182,59 @@ class IOCTL:
         )
 
 
-def apply_ioctl(enum: Enum, value_ea: int) -> None:
+def create_ioctl(enum: Enum, value_ea: int, value: int) -> None:
+    name = "IOCTL_{0:0{1}X}".format(value, 16)
+    if add_enum_member(enum, name, value) is False:
+        error(f"Cannot add tag to tags enum (name: {name}, value: {value:#x}")
+        return
+
+
+def ioctl_hooks_callback(enum: Enum, value_ea: int) -> None:
     value = get_value(value_ea)
     if value is None:
         error(f"Cannot decode IOCTL at {value_ea:#x}")
         return
 
-    name = "IOCTL_{0:0{1}X}".format(value, 16)
     info(f"{IOCTL(value)} set at {value_ea:#x}")
-    if add_enum_member(enum, name, value) is False:
-        error(f"Cannot add tag to tags enum (name: {name}, value: {value:#x}")
-        return
+    create_ioctl(enum, value_ea, value)
+    apply_enum(enum, value_ea)
 
-    idaapi.op_enum(value_ea, 1, enum, 0)
+
+def find_ioctls_in_range(enum: Enum, start_ea: int, end_ea: int) -> List[int]:
+    """
+    https://docs.microsoft.com/en-us/windows-hardware/drivers/kernel/defining-i-o-control-codes
+    Check common/custom bit for vendor-assigned values
+    Check against known values (e.g. http://www.ioctls.net/)
+    """
+    for head in idautils.Heads(start_ea, end_ea):
+        value = get_compared_value(head, end_ea)
+        if value is None:
+            continue
+
+        value &= 0xFFFFFFFF
+        if value in (0xFFFFFFFF, 0x80000000, 0x00000000):
+            continue
+
+        # device type > 0x8000
+        if ((value & 0xFFFF0000) >> 16) < 0x8000:
+            continue
+
+        # try to skip extreme value, nt status value
+        if value >> 24 in (0xFF, 0xC0):
+            continue
+
+        info(f"{IOCTL(value)} set at {head:#x}")
+        create_ioctl(enum, head, value)
+        apply_enum(enum, head)
+
+
+def find_enum_values_in_memory(enum: Enum):
+    for segment in get_segments():
+        if idaapi.segtype(segment.start_ea) != idaapi.SEG_CODE:
+            continue
+
+        for function in get_functions(segment.start_ea, segment.end_ea):
+            find_ioctls_in_range(enum, function.start_ea, function.end_ea)
 
 
 def run():
@@ -213,4 +266,5 @@ def run():
             ("ioctlsocket", 2),
         ],
     }
-    find_enum_values(enum, hooks, apply_ioctl)
+    find_enum_values(enum, hooks, ioctl_hooks_callback)
+    find_enum_values_in_memory(enum)

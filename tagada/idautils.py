@@ -1,14 +1,22 @@
 import functools
 from typing import Dict, Iterator, Optional
 
+import ida_bytes
 import ida_funcs
 import ida_ida
+import ida_idaapi
 import ida_segment
 import idaapi
 import idautils
 import idc
 
 from .types import Enum, Function, Insn, Segment
+
+
+def get_instruction(ea: int) -> Insn:
+    insn = idaapi.insn_t()
+    idaapi.decode_insn(insn, ea)
+    return insn
 
 
 @functools.lru_cache(maxsize=None)
@@ -91,6 +99,10 @@ def new_enum(name: str, values: Dict[int, str]) -> Enum:
     return enum
 
 
+def apply_enum(enum: Enum, value_ea: int) -> None:
+    idaapi.op_enum(value_ea, 1, enum, 0)
+
+
 def add_enum_member(enum: Enum, member_name: str, member_value: str) -> bool:
     value = idaapi.get_enum_member(enum, member_value, 0, 0)
     if value != idaapi.BADADDR:
@@ -105,12 +117,32 @@ def get_imm_value(insn: Insn) -> int:
 
 
 def get_value(ea: int) -> int:
-    insn = idaapi.insn_t()
-    idaapi.decode_insn(insn, ea)
+    insn = get_instruction(ea)
     if insn.itype == idaapi.NN_mov and insn.ops[1].type == idc.o_imm:
         return get_imm_value(insn)
 
     return None
+
+
+def get_compared_value(ea: int, end_ea: int) -> int:
+    insn = get_instruction(ea)
+    if insn.ops[1].type != idc.o_imm:
+        return None
+
+    # cmp r12d, 9876C04Ch
+    if insn.itype == idaapi.NN_cmp:
+        return get_imm_value(insn)
+
+    # mov edx, 9876C004h
+    # cmp r12d, edx
+    if insn.itype == idaapi.NN_mov:
+        next_ea = ida_bytes.next_head(ea, end_ea)
+        if next_ea >= end_ea or next_ea == ida_idaapi.BADADDR:
+            return None
+
+        next_insn = get_instruction(next_ea)
+        if next_insn.itype == idaapi.NN_cmp:
+            return get_imm_value(insn)
 
 
 def get_segments() -> Iterator[Segment]:

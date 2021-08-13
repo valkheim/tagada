@@ -121,6 +121,15 @@ def get_value(ea: int) -> int:
     if insn.itype == idaapi.NN_mov and insn.ops[1].type == idc.o_imm:
         return get_imm_value(insn)
 
+    if all(
+        [
+            insn.itype == idaapi.NN_xor,
+            len(insn.ops) >= 2,
+            insn.ops[0].reg == insn.ops[1].reg,
+        ]
+    ):
+        return 0
+
     return None
 
 

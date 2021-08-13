@@ -118,4 +118,5 @@ def get_segments() -> Iterator[Segment]:
         segment = ida_segment.getnseg(segment_id)
         if not segment:
             continue
-    yield segment
+
+        yield segment

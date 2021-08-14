@@ -185,7 +185,7 @@ class IOCTL:
 def create_ioctl(enum: Enum, value_ea: int, value: int) -> None:
     name = "IOCTL_{0:0{1}X}".format(value, 16)
     if add_enum_member(enum, name, value) is False:
-        error(f"Cannot add tag to tags enum (name: {name}, value: {value:#x}")
+        error(f"Cannot add ioctl enum member (name: {name}, value: {value:#x}")
         return
 
 
@@ -195,9 +195,9 @@ def ioctl_hooks_callback(enum: Enum, value_ea: int) -> None:
         error(f"Cannot decode IOCTL at {value_ea:#x}")
         return
 
-    info(f"{IOCTL(value)} set at {value_ea:#x}")
     create_ioctl(enum, value_ea, value)
     apply_enum(enum, value_ea)
+    info(f"{IOCTL(value)} set at {value_ea:#x}")
 
 
 def find_ioctls_in_range(enum: Enum, start_ea: int, end_ea: int) -> List[int]:

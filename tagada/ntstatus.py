@@ -1,5 +1,23 @@
+import dataclasses
+from typing import List
+
+import idaapi
+import idautils
+
+from tagada.idautils import (
+    add_enum_member,
+    apply_enum,
+    get_enum,
+    get_functions,
+    get_segments,
+    get_value,
+)
+from tagada.types import Enum
+from tagada.utils import error, info
+
 # https://github.com/googleprojectzero/sandbox-attacksurface-analysis-tools/blob/master/NtApiDotNet/NtStatus.cs
 
+# fmt: off
 NT_STATUS_CODE = {
     0x00000000: [
         "STATUS_SUCCESS",
@@ -7246,3 +7264,56 @@ NT_STATUS_SEVERITY = {
     0x2: "STATUS_SEVERITY_WARNING",
     0x3: "STATUS_SEVERITY_ERROR",
 }
+# fmt: on
+
+
+@dataclasses.dataclass(frozen=True)
+class NTSTATUS:
+    value: int
+
+    def __post_init__(self):
+        object.__setattr__(self, "name", NT_STATUS_CODE[self.value][0])
+        object.__setattr__(self, "description", NT_STATUS_CODE[self.value][1])
+
+    def __repr__(self) -> str:
+        return (
+            f"NTSTATUS(value={self.value:#08x}, "
+            f"name={self.name}, "
+            f'description="{self.description})"'
+        )
+
+
+def create_ntstatus(enum: Enum, value: int) -> None:
+    status = NTSTATUS(value)
+    if add_enum_member(enum, status.name, int(status.value)) is False:
+        error(f"Cannot add ntstatus enum member ({status})")
+
+    return status
+
+
+def find_ntstatus_in_range(enum: Enum, start_ea: int, end_ea: int) -> List[int]:
+    for head in idautils.Heads(start_ea, end_ea):
+        value = get_value(head)
+        if value is None:
+            continue
+
+        value &= 0xFFFFFFFF
+        if value >> 24 not in (0xC0, 0x40, 0x80):
+            continue
+
+        if value not in NT_STATUS_CODE:
+            continue
+
+        status = create_ntstatus(enum, value)
+        apply_enum(enum, head)
+        info(f"{status} set at {head:#x}")
+
+
+def run():
+    enum = get_enum("NTSTATUS")
+    for segment in get_segments():
+        if idaapi.segtype(segment.start_ea) != idaapi.SEG_CODE:
+            continue
+
+        for function in get_functions(segment.start_ea, segment.end_ea):
+            find_ntstatus_in_range(enum, function.start_ea, function.end_ea)

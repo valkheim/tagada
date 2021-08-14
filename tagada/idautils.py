@@ -10,6 +10,9 @@ import idaapi
 import idautils
 import idc
 
+from tagada.utils import error
+
+from . import NAME
 from .types import Enum, Function, Insn, Segment
 
 
@@ -84,6 +87,7 @@ def get_functions(
 
 
 def get_enum(name: str) -> Enum:
+    enum = f"{NAME}_{name}"
     enum = idaapi.get_enum(name)
     if enum != idaapi.BADADDR:
         return enum
@@ -104,11 +108,24 @@ def apply_enum(enum: Enum, value_ea: int) -> None:
 
 
 def add_enum_member(enum: Enum, member_name: str, member_value: str) -> bool:
+    member_name = f"{NAME}_{member_name}"
     value = idaapi.get_enum_member(enum, member_value, 0, 0)
     if value != idaapi.BADADDR:
         return True
 
-    return idaapi.add_enum_member(enum, member_name, member_value) == 0
+    ret = idaapi.add_enum_member(enum, member_name, member_value)
+    if ret != 0:
+        reasons = {
+            1: "already have member with this name (bad name) (CONST_ERROR_NAME)",
+            2: "already have member with this value (CONST_ERROR_VALUE)",
+            3: "bad enum id (CONST_ERROR_ENUM)",
+            4: "bad bmask (CONST_ERROR_MASK)",
+            5: "bad bmask and value combination (~bmask & value != 0) (CONST_ERROR_ILLV)",
+        }
+        reason = reasons.get(ret, "unknow reason")
+        error(f"Cannot add enum member: {reason}")
+
+    return ret == 0
 
 
 def get_imm_value(insn: Insn) -> int:
@@ -135,11 +152,8 @@ def get_value(ea: int) -> int:
 
 def get_compared_value(ea: int, end_ea: int) -> int:
     insn = get_instruction(ea)
-    if insn.ops[1].type != idc.o_imm:
-        return None
-
     # cmp r12d, 9876C04Ch
-    if insn.itype == idaapi.NN_cmp:
+    if insn.itype == idaapi.NN_cmp and insn.ops[1].type == idc.o_imm:
         return get_imm_value(insn)
 
     # mov edx, 9876C004h

@@ -4,6 +4,8 @@ from .idautils import get_value, new_enum
 from .types import Enum
 from .utils import error, find_enum_values, info
 
+# fmt: off
+# See https://raw.githubusercontent.com/bigzz/WRK/master/public/internal/base/inc/bugcodes.txt
 BUG_CHECK_CODES = {
     0x00000001: "APC_INDEX_MISMATCH",
     0x00000002: "DEVICE_QUEUE_NOT_BUSY",
@@ -373,6 +375,7 @@ BUG_CHECK_CODES = {
     0xC0000221: "STATUS_IMAGE_CHECKSUM_MISMATCH",
     0xDEADDEAD: "MANUALLY_INITIATED_CRASH1",
 }
+# fmt: on
 
 
 def apply_label(enum: Enum, value_ea: int) -> None:

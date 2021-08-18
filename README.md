@@ -2,5 +2,7 @@
 
 Enumerations
 
-* memory pool tags
+* Memory pool tags
 * IOCTLs
+* BugCheck
+* NTStatus

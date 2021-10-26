@@ -38,7 +38,6 @@ class Plugin(idaapi.plugin_t):
         tagada.info("-" * 80)
 
     def init(self):
-        load(Plugin.NAME)
         tagada.debug("Init")
         try:
             # some initialization routines
@@ -52,6 +51,7 @@ class Plugin(idaapi.plugin_t):
         return idaapi.PLUGIN_KEEP
 
     def run(self, arg):
+        load(Plugin.NAME)
         tagada.debug("run")
         tagada.run()
         pass

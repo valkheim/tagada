@@ -6,3 +6,4 @@ Enumerations
 * IOCTLs
 * BugCheck
 * NTStatus
+* Highlight unsafe functions

@@ -2,9 +2,11 @@ import functools
 from typing import Callable, Dict, Iterator, Optional
 
 import ida_bytes
+import ida_entry
 import ida_funcs
 import ida_ida
 import ida_idaapi
+import ida_nalt
 import ida_segment
 import idaapi
 import idautils
@@ -20,6 +22,29 @@ def get_instruction(ea: int) -> Insn:
     insn = idaapi.insn_t()
     idaapi.decode_insn(insn, ea)
     return insn
+
+
+def get_imports():
+    imports_qty = idaapi.get_import_module_qty()
+    imports = []
+    for idx in range(imports_qty):
+
+        def walk_imports(ea: int, name: str, ordinal: int) -> bool:
+            imports.append([ea, name, ordinal])
+            return True
+
+        ida_nalt.enum_import_names(idx, walk_imports)
+        ea, name, ordinal = imports[-1]
+
+    return imports
+
+
+def get_exports():
+    for idx in range(ida_entry.get_entry_qty()):
+        ordinal = ida_entry.get_entry_ordinal(idx)
+        name = ida_entry.get_entry_name(ordinal)
+        ea = ida_entry.get_entry(ordinal)
+        yield ea, name, ordinal
 
 
 @functools.lru_cache(maxsize=None)

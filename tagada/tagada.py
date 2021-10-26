@@ -1,4 +1,4 @@
-from . import bugcheck, ioctls, memory_tags, ntstatus
+from . import bugcheck, ioctls, memory_tags, ntstatus, sensitive_functions
 
 
 def run() -> None:
@@ -6,3 +6,4 @@ def run() -> None:
     memory_tags.run()
     ioctls.run()
     bugcheck.run()
+    sensitive_functions.run()

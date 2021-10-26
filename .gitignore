@@ -1,1 +1,4 @@
 __pycache__/
+
+scripts/install.cmd
+scripts/uninstall.cmd

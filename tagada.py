@@ -20,7 +20,7 @@ def load(plugin_name: str) -> None:
 
 
 class Plugin(idaapi.plugin_t):
-    NAME = tagada.NAME
+    NAME = tagada.config.NAME
     VERSION = "0.0.1"
     AUTHORS = f"The {NAME} team."
 

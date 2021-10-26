@@ -1,8 +1,8 @@
 import idaapi
 
-from .idautils import get_value, new_enum
+from .idautils import find_enum_values, get_value, new_enum
 from .types import Enum
-from .utils import error, find_enum_values, info
+from .utils import error, info
 
 # fmt: off
 # See https://raw.githubusercontent.com/bigzz/WRK/master/public/internal/base/inc/bugcodes.txt

@@ -1,8 +1,8 @@
 import idaapi
 
-from .idautils import add_enum_member, get_enum, get_value
+from .idautils import add_enum_member, find_enum_values, get_enum, get_value
 from .types import Enum
-from .utils import error, find_enum_values, info
+from .utils import error, info
 
 
 def apply_tag(enum: Enum, tag_value_ea: int) -> None:

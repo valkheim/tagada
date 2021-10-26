@@ -13,6 +13,7 @@ import idautils
 from .idautils import (
     add_enum_member,
     apply_enum,
+    find_enum_values,
     get_compared_value,
     get_enum,
     get_functions,
@@ -20,7 +21,7 @@ from .idautils import (
     get_value,
 )
 from .types import Enum
-from .utils import error, find_enum_values, info
+from .utils import error, info
 
 DEVICE_TYPES = {
     0x00000001: "FILE_DEVICE_BEEP",
@@ -107,7 +108,7 @@ DEVICE_TYPES = {
     0x0000005A: "FILE_DEVICE_NVDIMM",
     0x0000005B: "FILE_DEVICE_HOLOGRAPHIC",
     0x0000005C: "FILE_DEVICE_SDFXHCI",
-    0x0000005d: "FILE_DEVICE_UCMUCSI",
+    0x0000005D: "FILE_DEVICE_UCMUCSI",
     0x00000F60: "FILE_DEVICE_IRCLASS",
 }
 
@@ -199,7 +200,7 @@ def ioctl_hooks_callback(enum: Enum, value_ea: int) -> None:
 
     create_ioctl(enum, value_ea, value)
     apply_enum(enum, value_ea)
-    info(f"{IOCTL(value)} set at {value_ea:#x}")
+    info(f"{IOCTL(value)} set at {value_ea:#x} (via hooks)")
 
 
 def find_ioctls_in_range(enum: Enum, start_ea: int, end_ea: int) -> List[int]:
@@ -225,9 +226,9 @@ def find_ioctls_in_range(enum: Enum, start_ea: int, end_ea: int) -> List[int]:
         if value >> 24 in (0xFF, 0xC0):
             continue
 
-        info(f"{IOCTL(value)} set at {head:#x}")
+        info(f"Possible {IOCTL(value)} at {head:#x} (via range analysis)")
         create_ioctl(enum, head, value)
-        apply_enum(enum, head)
+        # apply_enum(enum, head)
 
 
 def find_enum_values_in_memory(enum: Enum):

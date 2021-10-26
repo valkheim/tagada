@@ -1,5 +1,5 @@
 import functools
-from typing import Dict, Iterator, Optional
+from typing import Callable, Dict, Iterator, Optional
 
 import ida_bytes
 import ida_funcs
@@ -12,8 +12,8 @@ import idc
 
 from tagada.utils import error
 
-from . import NAME
-from .types import Enum, Function, Insn, Segment
+from .config import NAME
+from .types import Enum, Function, Hooks, Insn, Segment
 
 
 def get_instruction(ea: int) -> Insn:
@@ -126,6 +126,21 @@ def add_enum_member(enum: Enum, member_name: str, member_value: str) -> bool:
         error(f"Cannot add enum member: {reason}")
 
     return ret == 0
+
+
+def find_enum_values(enum: Enum, hooks: Hooks, callback: Callable[[Enum, int], None]):
+    # 🛷
+    for module_name, function_names in hooks.items():
+        for function_name, arg_position in function_names:
+            ea = get_function(module_name, function_name)
+            for xref in idautils.XrefsTo(ea):
+                args = idaapi.get_arg_addrs(xref.frm)
+                if args is None:  # e.g. xref in a vtable
+                    continue
+
+                # Value may be fetched with the Hex-Rays API
+                value_ea = args[arg_position - 1]
+                callback(enum, value_ea)
 
 
 def get_imm_value(insn: Insn) -> int:

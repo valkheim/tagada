@@ -1,7 +1,9 @@
-from . import bugcheck, ioctls, memory_tags, ntstatus, sensitive_functions
+from . import bugcheck, fastfail, ioctls, memory_tags, ntstatus, sensitive_functions
 
 
 def run() -> None:
+    fastfail.run()
+    return
     ntstatus.run()
     memory_tags.run()
     ioctls.run()

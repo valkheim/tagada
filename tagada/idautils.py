@@ -168,15 +168,15 @@ def find_enum_values(enum: Enum, hooks: Hooks, callback: Callable[[Enum, int], N
                 callback(enum, value_ea)
 
 
-def get_imm_value(insn: Insn) -> int:
+def get_imm_value(insn: Insn, operand_position: int) -> int:
     """Get value when its immediate like `mov edx, 53646641h`"""
-    return insn.ops[1].value
+    return insn.ops[operand_position].value
 
 
 def get_value(ea: int) -> int:
     insn = get_instruction(ea)
     if insn.itype == idaapi.NN_mov and insn.ops[1].type == idc.o_imm:
-        return get_imm_value(insn)
+        return get_imm_value(insn, 1)
 
     if all(
         [
@@ -194,9 +194,10 @@ def get_compared_value(ea: int, end_ea: int) -> int:
     insn = get_instruction(ea)
     # cmp r12d, 9876C04Ch
     if insn.itype == idaapi.NN_cmp and insn.ops[1].type == idc.o_imm:
-        return get_imm_value(insn)
+        return get_imm_value(insn, 1)
 
     # mov edx, 9876C004h
+
     # cmp r12d, edx
     if insn.itype == idaapi.NN_mov:
         next_ea = ida_bytes.next_head(ea, end_ea)
@@ -205,7 +206,7 @@ def get_compared_value(ea: int, end_ea: int) -> int:
 
         next_insn = get_instruction(next_ea)
         if next_insn.itype == idaapi.NN_cmp:
-            return get_imm_value(insn)
+            return get_imm_value(insn, 1)
 
 
 def get_segments() -> Iterator[Segment]:
@@ -215,3 +216,57 @@ def get_segments() -> Iterator[Segment]:
             continue
 
         yield segment
+
+
+def walk_forward(
+    start: Optional[int] = ida_ida.cvar.inf.min_ea,
+    end: Optional[int] = ida_ida.cvar.inf.max_ea,
+):
+    ea = start
+    if not idc.is_head(ida_bytes.get_flags(ea)):
+        ea = ida_bytes.next_head(ea, end)
+
+    while ea < end and ea != ida_idaapi.BADADDR:
+        yield ea
+        ea = ida_bytes.next_head(ea, end)
+
+
+def walk_backward(
+    start: Optional[int] = ida_ida.cvar.inf.max_ea,
+    end: Optional[int] = ida_ida.cvar.inf.min_ea,
+):
+    ea = start
+    ea = ida_bytes.prev_head(start, end)
+    ea = ida_bytes.prev_head(start, end)
+
+    while ea >= end and ea != ida_idaapi.BADADDR:
+        yield ea
+        ea = ida_bytes.prev_head(ea, end)
+
+
+def find_value(start_ea: int, register_name: str):
+    """
+    Try to statically find the value of `register_name` at `start_ea`
+    """
+    ea = start_ea
+    for ea in walk_backward(ea):
+        insn = get_instruction(ea)
+        if insn.itype != idaapi.NN_mov:
+            continue
+
+        if all(
+            [  # mov reg, value
+                insn.itype == idaapi.NN_mov,
+                insn.ops[0].type == idc.o_reg,
+                insn.ops[0].reg == getattr(idautils.procregs, register_name).reg,
+                insn.ops[1].type == idc.o_imm,
+            ]
+        ):
+            return ea, get_imm_value(insn, 1)
+
+        # mov reg1, reg2 -> find_value(ea, reg2)
+        xrefs = [xref.frm for xref in idautils.XrefsTo(ea)]
+        if len(xrefs) > 1:
+            break
+
+    return None, None

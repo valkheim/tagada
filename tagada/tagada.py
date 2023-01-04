@@ -3,7 +3,6 @@ from . import bugcheck, fastfail, ioctls, memory_tags, ntstatus, sensitive_funct
 
 def run() -> None:
     fastfail.run()
-    return
     ntstatus.run()
     memory_tags.run()
     ioctls.run()

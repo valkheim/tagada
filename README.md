@@ -1,9 +1,10 @@
 # Tagada
 
-Enumerations
+An IDA plugin for some common decoding:
 
 * Memory pool tags
 * IOCTLs
 * BugCheck
 * NTStatus
-* Highlight unsafe functions
+* __fastfail
+* unsafe functions highlighting
